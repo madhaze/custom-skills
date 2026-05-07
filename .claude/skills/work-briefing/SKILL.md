@@ -1,6 +1,6 @@
 ---
 name: work-briefing
-description: Generate Chris's work briefing by pulling recent Jira and Gmail activity, identifying what's important, and either displaying it in chat or delivering it via Slack DM and email. Use when Chris asks for his "work briefing", "morning briefing", "midday check-in", "what should I work on", "what's on my plate", "what's important today", or when invoked by a scheduled task. Default mode is `chat` (display the summary inline). Mode `send` delivers the same summary to Slack DM and to cclark@phase2.io via email.
+description: Generate Chris's work briefing by pulling recent Jira and Gmail activity, identifying what's important, and either displaying it in chat or delivering it via Slack DM. Use when Chris asks for his "work briefing", "morning briefing", "midday check-in", "what should I work on", "what's on my plate", "what's important today", or when invoked by a scheduled task. Default mode is `chat` (display the summary inline). Mode `send` delivers the same summary to Chris's Slack DM.
 ---
 
 # Work Briefing
@@ -10,8 +10,8 @@ Generates a focused summary of what Chris should work on, based on recent Jira a
 ## Inputs
 
 - **mode** (default: `chat`)
-  - `chat` — display the summary inline in the current conversation. Do NOT send to Slack or email.
-  - `send` — deliver the summary via Slack DM AND email. Do NOT also display it inline (just confirm delivery).
+  - `chat` — display the summary inline in the current conversation. Do NOT send to Slack.
+  - `send` — deliver the summary via Slack DM. Do NOT also display it inline (just confirm delivery).
 - **window** (default: `morning`)
   - `morning` — look back 24h. On Mondays, look back 72h to cover Friday EOD through the weekend.
   - `midday` — look back 6h. Focus on what's *new since this morning's briefing*.
@@ -62,7 +62,7 @@ Mark an item as IMPORTANT if any are true:
 
 ## 4. Compose summary
 
-Use Slack mrkdwn (renders well in Slack and is readable as plain text in email/chat):
+Use Slack mrkdwn (renders well in Slack and is readable as plain text in chat):
 
 ```
 *Work Briefing — <today's date> (<window-label>)*
@@ -92,19 +92,17 @@ Window labels: `morning`, `midday check-in`, or for custom: `last <N>h`.
 
 ### If mode = chat
 - Render the summary directly in the conversation as the response.
-- Do NOT send anything to Slack or email.
+- Do NOT send anything to Slack.
 - Don't include preamble like "Here's your briefing" — just the summary itself.
 
 ### If mode = send
 - **Slack DM:** Find Chris's Slack user_id (search by email `cclark@phase2.io`), then send a direct message to that user_id. DMing yourself is supported — use the user's own ID as the channel. Use Slack mrkdwn formatting.
-- **Email:** Use the Gmail MCP to send to `cclark@phase2.io`. Subject: `Work Briefing — <date> (<window-label>)`. Body: same content as Slack.
-- After both deliveries, respond with a one-line confirmation: `Sent to Slack DM and cclark@phase2.io.` (or note any failures).
-- Attempt both channels independently — if one fails, still try the other.
+- After delivery, respond with a one-line confirmation: `Sent to Slack DM.` (or note the failure if it didn't go through).
 - Do NOT also render the summary inline when mode is send.
 
 ## Edge cases
 
 - If Atlassian or Gmail MCP isn't connected, note which one and proceed with whichever is available.
-- If both fail, report the failures clearly.
+- If both data sources fail, report the failures clearly.
 - If there's literally zero relevant activity, send/display a one-line summary saying so — don't fabricate items.
 - Never include credentials, tokens, or full email bodies in the summary.
