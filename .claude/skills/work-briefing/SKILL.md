@@ -19,9 +19,24 @@ Generates a focused summary of what Chris should work on, based on recent Jira a
 
 If invoked without parameters, default to `mode: chat`, `window: morning` (or `window: midday` if it's after 11am local time).
 
+# 0. Load deferred MCP tools
+
+The Atlassian and Gmail MCP tools are typically registered as **deferred tools** — their names appear in a `<system-reminder>` list, but their schemas are not loaded, so they cannot be called until fetched.
+
+Before deciding either MCP is "not connected," do this:
+
+1. Scan recent `<system-reminder>` messages for deferred tool names containing `Jira`, `Atlassian`, `Confluence`, `thread`, or `gmail`.
+2. Load the schemas via `ToolSearch` with a `select:` query. Examples:
+   - `select:getAccessibleAtlassianResources,searchJiraIssuesUsingJql,lookupJiraAccountId,atlassianUserInfo`
+   - `select:search_threads,get_thread`
+3. If `ToolSearch` matches those names, the tools are connected — proceed.
+4. Only treat a service as "not connected" if (a) no matching deferred tool name exists AND (b) the tool is not already directly callable.
+
 ## 1. Gather Jira activity
 
-Use the Atlassian MCP tools. If `currentUser()` doesn't resolve, use `lookupJiraAccountId` for `cclark@phase2.io` and substitute the accountId.
+Use the Atlassian MCP tools. Every Jira/Confluence call requires a `cloudId` — first call `getAccessibleAtlassianResources` and use the cloudId for `phase2tech.atlassian.net` on all subsequent calls.
+
+If `currentUser()` doesn't resolve, use `lookupJiraAccountId` for `cclark@phase2.io` and substitute the accountId.
 
 Compute the JQL window:
 - `morning` on Monday → `updated >= -3d`
