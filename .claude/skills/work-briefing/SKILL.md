@@ -19,7 +19,7 @@ Generates a focused summary of what Chris should work on, based on recent Jira a
 
 If invoked without parameters, default to `mode: chat`, `window: morning` (or `window: midday` if it's after 11am local time).
 
-# 0. Load deferred MCP tools
+## 0. Load deferred MCP tools
 
 The Atlassian and Gmail MCP tools are typically registered as **deferred tools** — their names appear in a `<system-reminder>` list, but their schemas are not loaded, so they cannot be called until fetched.
 
