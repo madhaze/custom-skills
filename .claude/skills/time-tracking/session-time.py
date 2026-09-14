@@ -36,6 +36,16 @@ CSV_PATH = os.path.join(OUTDIR, "daily.csv")
 # time, never the human's. That is the Lattice layout; harmless elsewhere.
 WORKER_MARK = "worktrees"
 
+# A working day is not a calendar day. Work at 00:30 belongs to the evening that
+# produced it, so the boundary sits at DAY_START (hours after midnight) and
+# everything before it is credited to the previous date.
+DAY_START = 2
+
+
+def _day(ts):
+    """The working date a timestamp belongs to."""
+    return (ts - dt.timedelta(hours=DAY_START)).date()
+
 
 def _slug(path):
     """Claude Code encodes a project cwd as its path with / -> -."""
@@ -122,7 +132,7 @@ def git_events(start, end):
             except Exception:
                 continue
             ev[label].append((ts, subj))
-            counts[ts.date()][label] += 1
+            counts[_day(ts)][label] += 1
     return ev, counts
 
 
@@ -242,15 +252,15 @@ def collect(gap, want_text=False):
     mo_ev, mo_user = defaultdict(list), defaultdict(int)
     mo_text, mo_proj = defaultdict(list), defaultdict(list)
     for ts, typ, text, proj in _msgs(MO_GLOB, want_text, exclude=MO_EXCLUDE):
-        mo_ev[ts.date()].append(ts)
-        mo_proj[ts.date()].append((ts, proj))
+        mo_ev[_day(ts)].append(ts)
+        mo_proj[_day(ts)].append((ts, proj))
         if typ == "user":
-            mo_user[ts.date()] += 1
+            mo_user[_day(ts)] += 1
         if want_text and text:
-            mo_text[ts.date()].append((ts, text, proj))
+            mo_text[_day(ts)].append((ts, text, proj))
     so_ev = defaultdict(list)
     for ts, _, _, _ in _msgs(SO_GLOB):
-        so_ev[ts.date()].append(ts)
+        so_ev[_day(ts)].append(ts)
     return mo_ev, mo_user, so_ev, mo_text, mo_proj
 
 
@@ -339,6 +349,11 @@ def by_project(day_blocks, projmsgs, dominant=False):
     return _split(day_blocks, projmsgs, lambda p: (p,), "(unknown)", dominant)
 
 
+def clock(ts):
+    """12-hour wall clock -- what a person remembers their day as."""
+    return ts.strftime("%I:%M%p").lstrip("0").replace("AM", "am").replace("PM", "pm")
+
+
 def block_label(start, end, texts, projmsgs, top=2):
     """Short 'repo · TICKET, TICKET' tag for one block, by message share."""
     pc = defaultdict(int)
@@ -378,6 +393,10 @@ def main():
     ap.add_argument("--from", dest="frm")
     ap.add_argument("--to", dest="to")
     ap.add_argument("--gap", type=int, default=15, help="idle minutes ending a block")
+    ap.add_argument("--day-start", type=int, default=2, metavar="H",
+                    help="hour a working day begins; work before it counts "
+                         "toward the previous day (default 2, i.e. 2am). "
+                         "Use 0 for strict calendar days.")
     ap.add_argument("--by-ticket", action="store_true")
     ap.add_argument("--by-project", action="store_true",
                     help="split each day by repo; the check that no project vanished")
@@ -406,6 +425,8 @@ def main():
     ap.add_argument("--ticket-prefix",
                     help="restrict --by-ticket to one board, e.g. STHS")
     a = ap.parse_args()
+    global DAY_START
+    DAY_START = a.day_start
     if a.timesheet:
         a.all_projects = a.by_project = a.by_ticket = a.append = True
 
@@ -422,7 +443,8 @@ def main():
                                      else f"{os.path.basename(REPO) or 'daily'}.csv"))
     mode = "dominant" if a.dominant else "proportional"
     src = "claude+git" if a.with_commits else "claude sessions only"
-    print(f"project: {label}   (gap {a.gap}m, {mode} attribution, {src})\n")
+    print(f"project: {label}   (gap {a.gap}m, day starts {a.day_start}:00, "
+          f"{mode} attribution, {src})\n")
 
     global TICKET
     if a.ticket_prefix:
@@ -450,10 +472,10 @@ def main():
         for label, items in git_ev.items():
             for ts, subj in items:
                 for point in ((ts - pad, ts) if pad else (ts,)):
-                    mo_ev[point.date()].append(point)
-                    mo_proj[point.date()].append((point, label))
+                    mo_ev[_day(point)].append(point)
+                    mo_proj[_day(point)].append((point, label))
                 if (a.by_ticket or a.blocks) and subj:
-                    mo_text[ts.date()].append((ts, subj, label))
+                    mo_text[_day(ts)].append((ts, subj, label))
 
     rows = []
     print(f"{'date':<12} {'day':<4} {'engaged':>8} {'blocks':>7} {'msgs':>6} "
@@ -478,13 +500,17 @@ def main():
             "engaged_hours": round(secs / 3600, 2),
             "blocks": len(bl), "your_messages": mo_user[day],
             "worker_hours": round(so_secs / 3600, 2), "commits": n,
-            "gap_minutes": a.gap, "attribution": mode, "sources": sources,
+            "gap_minutes": a.gap, "day_start_hour": a.day_start,
+            "attribution": mode, "sources": sources,
         })
         if a.blocks:
             for bs, be in bl:
                 dur = (be - bs).total_seconds() / 3600
                 tag = block_label(bs, be, mo_text.get(day, []), mo_proj.get(day, []))
-                print(f"{'':<14} {bs:%H:%M}-{be:%H:%M} {dur:>6.2f}h  {tag}")
+                span = f"{clock(bs)}-{clock(be)}"
+                if bs.date() != day:
+                    span += " +1d"
+                print(f"{'':<12} {span:<18} {dur:>6.2f}h  {tag}")
         if a.by_project and a.by_ticket:
             nested = by_project_ticket(bl, mo_text.get(day, []),
                                        mo_proj.get(day, []), a.dominant)
