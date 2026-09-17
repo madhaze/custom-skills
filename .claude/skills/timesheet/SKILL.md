@@ -111,8 +111,6 @@ use `--by-project` — it reads the transcript's own repo and cannot be voted aw
   had; do not assume its absence means no work.
 - Round to the nearest 0.25h when a human is going to type it into a timesheet; the SUMMARY
   footer's `sheet` column already does this.
-- Paste the script's own output, then your summary. Do not replace the output with a summary
-  — the block times and the footer are the point.
 
 ### Formatting the reply
 
@@ -132,6 +130,11 @@ So the readable choice in chat is the OPPOSITE of the readable choice in a termi
 - Keep tables narrow enough not to wrap: date, day, hours, sheet, and a short project column.
   Long ticket lists go on a line of their own, separated with `·`.
 - Bold the timesheet-ready (0.25h-rounded) figure — that is the number being typed in.
+- **The week summary table MUST carry each day's tickets**, not just its projects. The script's
+  SUMMARY footer prints both; a rendering that keeps the project split and drops the tickets
+  loses the column the timesheet is actually filled in from. Columns:
+  `Day · Hours · Timesheet · Projects · Tickets`, tickets separated with `·`, top few plus
+  `(other)`. Week-level `by project` and `by ticket` lines go underneath.
 
 ## Portability
 
