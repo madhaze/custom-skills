@@ -116,17 +116,22 @@ use `--by-project` — it reads the transcript's own repo and cannot be voted aw
 
 ### Formatting the reply
 
-The script's output is pipe-separated and column-aligned for a terminal. Lifting those lines
-into Markdown breaks them, because `|` stops being a character and becomes table syntax.
+Chris reads these in Claude Code **desktop**, which renders Markdown. A Markdown table becomes
+a clean bordered grid; a fenced code block is shown verbatim in monospace and is much denser.
+So the readable choice in chat is the OPPOSITE of the readable choice in a terminal.
 
-- Put the script's output in a fenced code block, **verbatim**. Never re-render it as a table,
-  never re-wrap it — the alignment is the readability.
-- Write your own summary as a NARROW Markdown table: date, day, hours, sheet, and a short
-  project column. Wide tables wrap mid-value and stop lining up.
+- **Render the report as Markdown tables.** One table per day for the blocks — columns:
+  `#`, `Time`, `Duration`, `Working on` — with gap rows italicised in place (`— away —`) and
+  automated pings marked. Then the week summary as its own table.
+- **Do not paste the script's raw output by default.** It is column-aligned for a terminal and
+  reads worse here. Paste it in a fenced block only when the tool's own behaviour is the
+  subject — a new flag, a suspected bug, a format change.
 - **Never put a pipe-separated list inside a table cell.** A cell containing
-  `STHS-181 1.77 | STHS-101 1.64` destroys the whole table. Use `·` as the separator, or put
-  the list on its own line outside the table.
-- Ticket and project lists outside a table: separate with `·`, not `|`.
+  `STHS-181 1.77 | STHS-101 1.64` destroys the whole grid, because `|` is column syntax.
+  Use `·` as the separator, or put the list on its own line outside the table.
+- Keep tables narrow enough not to wrap: date, day, hours, sheet, and a short project column.
+  Long ticket lists go on a line of their own, separated with `·`.
+- Bold the timesheet-ready (0.25h-rounded) figure — that is the number being typed in.
 
 ## Portability
 
