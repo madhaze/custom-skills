@@ -20,11 +20,11 @@ split by project and then by ticket. Nothing is written unless you pass `--appen
 
 | Option | Effect |
 | --- | --- |
-| *(no flags)* | **the current week, Monday to today**, every repo, split by project then ticket |
+| *(no flags)* | **the current week, Monday to today** — every repo, each day's blocks with clock times, the project→ticket split, then a week summary |
 | `--last-week` | the previous full Monday–Sunday week |
 | `--days N` | last N days instead of a week |
 | `--from YYYY-MM-DD [--to …]` | explicit range |
-| `--blocks` | each block's wall-clock span (`1:40pm-2:15pm`) — *when* the time was spent |
+| `--no-blocks` | omit the block clock times (shown by default) |
 | `--append` | write/refresh rows in the durable CSVs (never automatic) |
 | `--totals` | day totals only, without the project/ticket breakdown |
 | `--this-repo` | only the current git repo |
@@ -70,7 +70,13 @@ Besides matching how a person remembers their day, this stops a session that run
 midnight from being split into two artificial blocks. In `--blocks` output a span marked
 `+1d` fell on the following calendar date.
 
-**`--blocks` also shows the gaps.** A break of 30 minutes or more between two blocks prints as
+**The default output has three parts**, in order: each day's working blocks with clock
+times, then that day's project→ticket split, and finally a SUMMARY footer — one row per day
+with its hours, the 0.25h-rounded figure to type into a timesheet, and the project split,
+followed by week totals by project and by ticket. `--no-blocks` drops the first part;
+`--totals` drops the first two.
+
+**Block times show the gaps too.** A break of 30 minutes or more between two blocks prints as
 `-- 2h 28m away --`, so a day's missing hours are visible rather than inferred.
 
 **Sub-minute blocks are pings, not sittings.** Scheduled tasks and `/loop` runs leave
@@ -102,7 +108,10 @@ use `--by-project` — it reads the transcript's own repo and cannot be voted aw
 - Before presenting a per-ticket breakdown across repos, run `--by-project` on the same range
   and confirm every repo you expected is there. A missing board is the failure mode this tool
   had; do not assume its absence means no work.
-- Round to the nearest 0.25h when a human is going to type it into a timesheet.
+- Round to the nearest 0.25h when a human is going to type it into a timesheet; the SUMMARY
+  footer's `sheet` column already does this.
+- Paste the script's own output, then your summary. Do not replace the output with a summary
+  — the block times and the footer are the point.
 
 ## Portability
 
@@ -130,14 +139,14 @@ reconstruct it.
 # the week so far: every repo, per project and ticket
 python3 ~/.claude/skills/timesheet/session-time.py
 
-# ...with the clock times of each working block, to check it against memory
-python3 ~/.claude/skills/timesheet/session-time.py --blocks
+# the same, without the per-block clock times
+python3 ~/.claude/skills/timesheet/session-time.py --no-blocks
 
 # last week, recorded permanently
 python3 ~/.claude/skills/timesheet/session-time.py --last-week --append
 
 # one day in detail
-python3 ~/.claude/skills/timesheet/session-time.py --from 2026-09-10 --to 2026-09-10 --blocks
+python3 ~/.claude/skills/timesheet/session-time.py --from 2026-09-10 --to 2026-09-10
 
 # just the current repo, day totals only
 python3 ~/.claude/skills/timesheet/session-time.py --this-repo --totals

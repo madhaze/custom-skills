@@ -65,7 +65,14 @@ def _proj_label(d):
         if b.startswith(p):
             b = b[len(p):]
             break
-    return b or os.path.basename(d)
+    b = b or os.path.basename(d)
+    # Slugs repeat the parent directory ("ionis-ionis-tryn"); drop the echo.
+    parts = b.split("-")
+    for i in range(1, len(parts)):
+        parent, rest = "-".join(parts[:i]), "-".join(parts[i:])
+        if rest == parent or rest.startswith(parent + "-"):
+            return rest
+    return b
 
 
 def _unslug(slug):
@@ -424,9 +431,10 @@ def main():
                     help="winner-take-all attribution (old behaviour)")
     ap.add_argument("--append", action="store_true", help="write rows to daily.csv")
     ap.add_argument("--project", help="repo path (default: current git root)")
-    ap.add_argument("--blocks", action="store_true",
-                    help="show each working block's clock times, not just the "
-                         "day total -- when the time was actually spent")
+    ap.add_argument("--no-blocks", dest="blocks", action="store_false",
+                    help="omit each working block's clock times (they are "
+                         "shown by default)")
+    ap.set_defaults(blocks=True)
     ap.add_argument("--no-commits", dest="with_commits", action="store_false",
                     help="Claude transcripts only; do NOT seed blocks with your "
                          "git commit times (default: commits ARE included)")
@@ -487,6 +495,8 @@ def main():
 
     mo_ev, mo_user, so_ev, mo_text, mo_proj = collect(gap, want_text=a.by_ticket or a.blocks)
     detail = []   # (date, project, ticket, hours) for the detail CSV
+    week = []     # (day, engaged_h, worker_h, {project: h}) for the summary
+    week_tickets = defaultdict(float)
 
     # Commit counts always work now, including under --all-projects, where REPO
     # is empty and the old per-repo git call silently returned 0 for every day.
@@ -568,6 +578,11 @@ def main():
         if a.by_project and a.by_ticket:
             nested = by_project_ticket(bl, mo_text.get(day, []),
                                        mo_proj.get(day, []), a.dominant)
+            week.append((day, secs / 3600, so_secs / 3600,
+                         {p: sum(t.values()) / 3600 for p, t in nested.items()}))
+            for p, t in nested.items():
+                for tk, sec in t.items():
+                    week_tickets[tk] += sec / 3600
             for pj, tks in sorted(nested.items(),
                                   key=lambda kv: -sum(kv[1].values())):
                 ph = sum(tks.values()) / 3600
@@ -593,6 +608,32 @@ def main():
                                "project": "", "ticket": tk, "hours": round(s / 3600, 2)})
     print("-" * 60)
     print(f"{'TOTAL':<18} {total/3600:>7.2f}h over {len(rows)} active days")
+
+    if week:
+        def q(h):                          # what you actually type in
+            return round(h * 4) / 4
+        print("\n" + "=" * 78)
+        print(f"SUMMARY  {start} to {end}   "
+              f"(gap {a.gap}m, day starts {a.day_start}:00, {sources})")
+        print(f"\n{'date':<12} {'day':<4} {'engaged':>8} {'sheet':>7}  projects")
+        print("-" * 78)
+        proj_tot, worker_tot = defaultdict(float), 0.0
+        for day, eng, wk, projs in week:
+            worker_tot += wk
+            for p, h in projs.items():
+                proj_tot[p] += h
+            split = " | ".join(f"{p} {h:.2f}" for p, h in
+                               sorted(projs.items(), key=lambda kv: -kv[1]))
+            print(f"{day}  {day:%a}  {eng:>7.2f}h {q(eng):>6.2f}  {split}")
+        print("-" * 78)
+        tot_h = sum(e for _, e, _, _ in week)
+        print(f"{'TOTAL':<18} {tot_h:>7.2f}h {q(tot_h):>6.2f}   "
+              f"worker {worker_tot:.2f}h (separate -- machine time, never added)")
+        print(f"\n{'by project':<12} " + " | ".join(
+            f"{p} {h:.2f}h" for p, h in
+            sorted(proj_tot.items(), key=lambda kv: -kv[1])))
+        top = sorted(week_tickets.items(), key=lambda kv: -kv[1])[:8]
+        print(f"{'by ticket':<12} " + " | ".join(f"{t} {h:.2f}h" for t, h in top))
 
     if a.append and rows:
         existing = {}

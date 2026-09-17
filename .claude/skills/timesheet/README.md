@@ -29,11 +29,11 @@ python3 ~/.claude/skills/timesheet/session-time.py [options]
 
 | Option | Description |
 |---|---|
-| *(no flags)* | **the current week, Monday to today**, every repo, split by project then ticket |
+| *(no flags)* | **the current week, Monday to today** — every repo, each day's blocks with clock times, the project→ticket split, then a week summary |
 | `--last-week` | the previous full Monday–Sunday week |
 | `--days N` | last N days instead of a week |
 | `--from YYYY-MM-DD [--to …]` | explicit range |
-| `--blocks` | each block's wall-clock span (`1:40pm-2:15pm`) — *when* the time was spent |
+| `--no-blocks` | omit the block clock times (shown by default) |
 | `--append` | write/refresh rows in the durable CSVs (never automatic) |
 | `--totals` | day totals only, without the project/ticket breakdown |
 | `--this-repo` | only the current git repo |
@@ -51,7 +51,7 @@ The everyday invocation is no flags at all — the week in progress, every repo,
 project and then ticket. Nothing is written to disk unless you pass `--append`.
 
 ```bash
-python3 ~/.claude/skills/timesheet/session-time.py --blocks
+python3 ~/.claude/skills/timesheet/session-time.py --no-blocks
 ```
 
 ## What it does
@@ -127,15 +127,15 @@ reconstructed from anything else.
 # the week so far: every repo, per project and ticket
 python3 ~/.claude/skills/timesheet/session-time.py
 
-# ...with the clock times of each working block, to check it against memory
-python3 ~/.claude/skills/timesheet/session-time.py --blocks
+# the same, without the per-block clock times
+python3 ~/.claude/skills/timesheet/session-time.py --no-blocks
 
 # last week, recorded permanently
 python3 ~/.claude/skills/timesheet/session-time.py --last-week --append
 
 # one day in detail, to check it against memory
 python3 ~/.claude/skills/timesheet/session-time.py \
-  --from 2026-09-10 --to 2026-09-10 --blocks
+  --from 2026-09-10 --to 2026-09-10
 
 # just the current repo, day totals only
 python3 ~/.claude/skills/timesheet/session-time.py --this-repo --totals
