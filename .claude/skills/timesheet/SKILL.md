@@ -15,25 +15,27 @@ writes, so nothing has to be instrumented in advance.
 python3 ~/.claude/skills/timesheet/session-time.py [options]
 ```
 
+With no flags it reports **the week in progress** — Monday through today, every repo,
+split by project and then by ticket. Nothing is written unless you pass `--append`.
+
 | Option | Effect |
 | --- | --- |
-| `--days N` | last N days (default 7) |
+| *(no flags)* | **the current week, Monday to today**, every repo, split by project then ticket |
+| `--last-week` | the previous full Monday–Sunday week |
+| `--days N` | last N days instead of a week |
 | `--from YYYY-MM-DD [--to …]` | explicit range |
-| `--by-ticket` | split each day by ticket, proportional to mentions per block |
-| `--by-project` | split each day by repo — the check that no project vanished |
-| `--by-project --by-ticket` | **the daily timesheet view**: repo, then tickets inside it |
-| `--blocks` | each block's wall-clock span (`1:40pm-2:15pm`) — WHEN time was spent, for checking a day against memory |
-| `--timesheet` | **the preset**: all repos, project/ticket breakdown, appended |
-| `--no-commits` | Claude transcripts only (commits are ON by default) |
+| `--blocks` | each block's wall-clock span (`1:40pm-2:15pm`) — *when* the time was spent |
+| `--append` | write/refresh rows in the durable CSVs (never automatic) |
+| `--totals` | day totals only, without the project/ticket breakdown |
+| `--this-repo` | only the current git repo |
+| `--project PATH` | only this repo |
+| `--day-start H` | hour a working day begins (default 2 = 2am); `0` for calendar days |
+| `--gap N` | idle minutes that end a working block (default 15) |
+| `--min H` | roll rows under H hours into `(other)` (default 0.1) |
+| `--no-commits` | transcripts only (git commits are included by default) |
 | `--commit-minutes M` | credit M min of lead-up before each commit (default 0) |
 | `--dominant` | old winner-take-all attribution (erases minority repos) |
-| `--min H` | roll rows under H hours into `(other)` (default 0.1) |
-| `--append` | write/refresh rows in the durable CSV |
-| `--gap N` | idle minutes that end a working block (default 15) |
-| `--day-start H` | hour a working day begins (default 2 = 2am); work before it counts toward the previous day. `0` for strict calendar days |
-| `--project PATH` | another repo (default: current git root) |
-| `--all-projects` | every project, for a true personal total |
-| `--ticket-prefix X` | restrict `--by-ticket` to one board, e.g. `STHS` |
+| `--ticket-prefix X` | restrict tickets to one board, e.g. `STHS` |
 
 `--append` with a breakdown flag also writes `<name>-detail.csv`: one row per
 `date,weekday,project,ticket,hours`. That is the file to read when filling in a daily
@@ -115,25 +117,18 @@ reconstruct it.
 ## Typical use
 
 ```bash
-# what the current project cost this week
-python3 ~/.claude/skills/timesheet/session-time.py --days 7
+# the week so far: every repo, per project and ticket
+python3 ~/.claude/skills/timesheet/session-time.py
 
-# a timesheet week, split by ticket
-python3 ~/.claude/skills/timesheet/session-time.py --from 2026-08-24 --to 2026-08-30 --by-ticket
+# ...with the clock times of each working block, to check it against memory
+python3 ~/.claude/skills/timesheet/session-time.py --blocks
 
-# which repos did the week actually touch? run this BEFORE trusting a ticket split
-python3 ~/.claude/skills/timesheet/session-time.py --from 2026-08-24 --all-projects --by-project
+# last week, recorded permanently
+python3 ~/.claude/skills/timesheet/session-time.py --last-week --append
 
-# when was the time spent? wall-clock spans per block, to verify a day
-# (composes with --timesheet: --timesheet --days 7 --blocks)
-python3 ~/.claude/skills/timesheet/session-time.py --all-projects --days 1 --blocks
+# one day in detail
+python3 ~/.claude/skills/timesheet/session-time.py --from 2026-09-10 --to 2026-09-10 --blocks
 
-# THE DAILY TIMESHEET VIEW: per day, per repo, per ticket -- and persist it
-python3 ~/.claude/skills/timesheet/session-time.py --timesheet --days 7
-
-# capture today permanently
-python3 ~/.claude/skills/timesheet/session-time.py --days 1 --append
-
-# everything, across every repo
-python3 ~/.claude/skills/timesheet/session-time.py --days 30 --all-projects
+# just the current repo, day totals only
+python3 ~/.claude/skills/timesheet/session-time.py --this-repo --totals
 ```

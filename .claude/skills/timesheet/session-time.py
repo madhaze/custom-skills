@@ -389,7 +389,14 @@ def rollup(shares, min_hours):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--days", type=int, default=7)
+    ap.add_argument("--days", type=int, default=None,
+                    help="last N days, instead of the current week")
+    ap.add_argument("--last-week", action="store_true",
+                    help="the previous full Monday-Sunday week")
+    ap.add_argument("--this-repo", action="store_true",
+                    help="only the current git repo (default: every project)")
+    ap.add_argument("--totals", action="store_true",
+                    help="day totals only, without the project/ticket breakdown")
     ap.add_argument("--from", dest="frm")
     ap.add_argument("--to", dest="to")
     ap.add_argument("--gap", type=int, default=15, help="idle minutes ending a block")
@@ -397,15 +404,14 @@ def main():
                     help="hour a working day begins; work before it counts "
                          "toward the previous day (default 2, i.e. 2am). "
                          "Use 0 for strict calendar days.")
-    ap.add_argument("--by-ticket", action="store_true")
-    ap.add_argument("--by-project", action="store_true",
-                    help="split each day by repo; the check that no project vanished")
+    # Accepted for compatibility: these are the default behaviour now.
+    ap.add_argument("--by-ticket", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--by-project", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--all-projects", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--dominant", action="store_true",
                     help="winner-take-all attribution (old behaviour)")
     ap.add_argument("--append", action="store_true", help="write rows to daily.csv")
     ap.add_argument("--project", help="repo path (default: current git root)")
-    ap.add_argument("--all-projects", action="store_true",
-                    help="every project Claude Code has transcripts for")
     ap.add_argument("--blocks", action="store_true",
                     help="show each working block's clock times, not just the "
                          "day total -- when the time was actually spent")
@@ -418,17 +424,20 @@ def main():
                          "before each commit (default 0: never invent time)")
     ap.add_argument("--min", type=float, default=0.1, metavar="H",
                     help="roll rows under H hours into (other); 0 shows all")
-    ap.add_argument("--timesheet", action="store_true",
-                    help="preset: every repo, nested project/ticket breakdown, "
-                         "written to the CSVs. Equivalent to "
-                         "--all-projects --by-project --by-ticket --append")
+    # Was the preset; its behaviour is now the default, but it still implies
+    # --append so an older saved command keeps writing the CSVs.
+    ap.add_argument("--timesheet", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--ticket-prefix",
                     help="restrict --by-ticket to one board, e.g. STHS")
     a = ap.parse_args()
     global DAY_START
     DAY_START = a.day_start
-    if a.timesheet:
-        a.all_projects = a.by_project = a.by_ticket = a.append = True
+    if a.timesheet:                       # legacy alias: it also appended
+        a.append = True
+    # Every repo, split by project then ticket, is what this is for. --this-repo
+    # and --project narrow it; --totals drops the breakdown.
+    a.all_projects = not (a.this_repo or a.project)
+    a.by_project = a.by_ticket = not a.totals
 
     global MO_GLOB, SO_GLOB, REPO, CSV_PATH, MO_EXCLUDE
     if a.all_projects:
@@ -452,12 +461,17 @@ def main():
 
     gap = a.gap * 60
     today = dt.date.today()
+    monday = today - dt.timedelta(days=today.weekday())
     if a.frm:
         start = dt.date.fromisoformat(a.frm)
         end = dt.date.fromisoformat(a.to) if a.to else today
-    else:
-        end = today
-        start = today - dt.timedelta(days=a.days - 1)
+    elif a.days:
+        end, start = today, today - dt.timedelta(days=a.days - 1)
+    elif a.last_week:
+        start = monday - dt.timedelta(days=7)
+        end = start + dt.timedelta(days=6)
+    else:                                  # the week in progress
+        start, end = monday, today
 
     mo_ev, mo_user, so_ev, mo_text, mo_proj = collect(gap, want_text=a.by_ticket or a.blocks)
     detail = []   # (date, project, ticket, hours) for the detail CSV
