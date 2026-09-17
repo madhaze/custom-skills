@@ -29,7 +29,7 @@ from collections import defaultdict
 
 HOME = os.path.expanduser("~")
 PROJECTS = os.path.join(HOME, ".claude", "projects")
-OUTDIR = os.path.join(HOME, ".claude", "time-tracking")
+OUTDIR = os.path.join(HOME, ".claude", "timesheet")
 CSV_PATH = os.path.join(OUTDIR, "daily.csv")
 
 # Project dirs whose path contains this are worker (worktree) sessions: machine

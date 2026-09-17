@@ -1,9 +1,9 @@
 ---
-name: time-tracking
-description: Reconstruct how much time was actually spent working, from Claude Code session transcripts, for time tracking and billing. Use when asked "how long did I work", "how much time did I spend", for a daily or weekly total, time per ticket, a timesheet, or to log/append today's hours. Works in any project; detects the repo from the current directory.
+name: timesheet
+description: Fill in or audit a daily timesheet by reconstructing hours worked — per day, per project and per ticket — from Claude Code session transcripts and your git commits. Use when asked "how long did I work", "how much time did I spend", for a daily or weekly total, time per ticket, a timesheet, or to log/append today's hours. Works in any project; detects the repo from the current directory.
 ---
 
-# time-tracking
+# timesheet
 
 Commit counts badly understate real effort — decisions, review and investigation leave no
 commits. This reconstructs engaged time from the session transcripts Claude Code already
@@ -12,7 +12,7 @@ writes, so nothing has to be instrumented in advance.
 ## The tool
 
 ```bash
-python3 ~/.claude/skills/time-tracking/session-time.py [options]
+python3 ~/.claude/skills/timesheet/session-time.py [options]
 ```
 
 | Option | Effect |
@@ -39,7 +39,7 @@ python3 ~/.claude/skills/time-tracking/session-time.py [options]
 `date,weekday,project,ticket,hours`. That is the file to read when filling in a daily
 timesheet; the day-level CSV only carries totals.
 
-Output goes to `~/.claude/time-tracking/<repo>.csv`, or `all-projects.csv` — deliberately
+Output goes to `~/.claude/timesheet/<repo>.csv`, or `all-projects.csv` — deliberately
 OUTSIDE this skill's git repo, since it is accumulated data, not code.
 
 ## What it measures, and what it does not
@@ -116,24 +116,24 @@ reconstruct it.
 
 ```bash
 # what the current project cost this week
-python3 ~/.claude/skills/time-tracking/session-time.py --days 7
+python3 ~/.claude/skills/timesheet/session-time.py --days 7
 
 # a timesheet week, split by ticket
-python3 ~/.claude/skills/time-tracking/session-time.py --from 2026-08-24 --to 2026-08-30 --by-ticket
+python3 ~/.claude/skills/timesheet/session-time.py --from 2026-08-24 --to 2026-08-30 --by-ticket
 
 # which repos did the week actually touch? run this BEFORE trusting a ticket split
-python3 ~/.claude/skills/time-tracking/session-time.py --from 2026-08-24 --all-projects --by-project
+python3 ~/.claude/skills/timesheet/session-time.py --from 2026-08-24 --all-projects --by-project
 
 # when was the time spent? wall-clock spans per block, to verify a day
 # (composes with --timesheet: --timesheet --days 7 --blocks)
-python3 ~/.claude/skills/time-tracking/session-time.py --all-projects --days 1 --blocks
+python3 ~/.claude/skills/timesheet/session-time.py --all-projects --days 1 --blocks
 
 # THE DAILY TIMESHEET VIEW: per day, per repo, per ticket -- and persist it
-python3 ~/.claude/skills/time-tracking/session-time.py --timesheet --days 7
+python3 ~/.claude/skills/timesheet/session-time.py --timesheet --days 7
 
 # capture today permanently
-python3 ~/.claude/skills/time-tracking/session-time.py --days 1 --append
+python3 ~/.claude/skills/timesheet/session-time.py --days 1 --append
 
 # everything, across every repo
-python3 ~/.claude/skills/time-tracking/session-time.py --days 30 --all-projects
+python3 ~/.claude/skills/timesheet/session-time.py --days 30 --all-projects
 ```

@@ -1,4 +1,4 @@
-# time-tracking
+# timesheet
 
 Reconstruct how much time was actually spent working, from Claude Code session transcripts.
 
@@ -17,13 +17,13 @@ Works in any project. Detects the repo from the current directory.
 ## Usage
 
 ```
-/time-tracking
+/timesheet
 ```
 
 Or call the script directly:
 
 ```bash
-python3 ~/.claude/skills/time-tracking/session-time.py [options]
+python3 ~/.claude/skills/timesheet/session-time.py [options]
 ```
 
 | Option | Description |
@@ -49,7 +49,7 @@ python3 ~/.claude/skills/time-tracking/session-time.py [options]
 The everyday invocation is one flag plus a range:
 
 ```bash
-python3 ~/.claude/skills/time-tracking/session-time.py --timesheet --days 7 --blocks
+python3 ~/.claude/skills/timesheet/session-time.py --timesheet --days 7 --blocks
 ```
 
 ## What it does
@@ -96,7 +96,7 @@ add.
 
 ## Output
 
-Console table, plus optional CSVs at `~/.claude/time-tracking/`:
+Console table, plus optional CSVs at `~/.claude/timesheet/`:
 
 - `<repo>.csv` (or `all-projects.csv`) — one row per day, recording `gap_minutes`,
   `day_start_hour`, `attribution` and `sources` alongside the hours, so an archived row still
@@ -123,20 +123,20 @@ reconstructed from anything else.
 
 ```bash
 # what the current project cost this week
-python3 ~/.claude/skills/time-tracking/session-time.py --days 7
+python3 ~/.claude/skills/timesheet/session-time.py --days 7
 
 # the weekly timesheet run: every repo, per-day project/ticket, block times, persisted
-python3 ~/.claude/skills/time-tracking/session-time.py --timesheet --days 7 --blocks
+python3 ~/.claude/skills/timesheet/session-time.py --timesheet --days 7 --blocks
 
 # one day in detail, to check it against memory
-python3 ~/.claude/skills/time-tracking/session-time.py \
+python3 ~/.claude/skills/timesheet/session-time.py \
   --all-projects --from 2026-09-10 --to 2026-09-10 --blocks --by-project --by-ticket
 
 # capture today permanently
-python3 ~/.claude/skills/time-tracking/session-time.py --days 1 --append
+python3 ~/.claude/skills/timesheet/session-time.py --days 1 --append
 
 # everything, across every repo
-python3 ~/.claude/skills/time-tracking/session-time.py --days 30 --all-projects
+python3 ~/.claude/skills/timesheet/session-time.py --days 30 --all-projects
 ```
 
 ## Dependencies
