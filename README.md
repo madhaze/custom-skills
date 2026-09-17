@@ -19,7 +19,7 @@ The symlink approach for local use lets you edit skills in one place (`~/.claude
 | [`component-visual-review`](.claude/skills/component-visual-review/README.md) | Pixel-perfect visual review of a component against a design reference |
 | [`find-blocked-mcp`](.claude/skills/find-blocked-mcp/README.md) | Identify MCP tools blocked by approval errors in a routine log |
 | [`work-briefing`](.claude/skills/work-briefing/README.md) | Daily work briefing from Jira and Gmail, delivered in chat or Slack |
-| [`timesheet`](.claude/skills/timesheet/README.md) | Reconstruct time worked per day, project and ticket from session transcripts |
+| [`timesheet`](.claude/skills/timesheet/README.md) | Fill in or audit a daily timesheet — hours per day, project and ticket, from session transcripts and git commits |
 
 ## Installation (local)
 
@@ -46,6 +46,9 @@ cd ~/.claude/custom-skills && git add .claude/skills/<name>/SKILL.md && git comm
 ```
 
 ## Adding a new skill
+
+> Remember to add a row to the **Skills** table above — a skill that is not listed there is
+> invisible to anyone reading this repo.
 
 1. Create `~/.claude/custom-skills/.claude/skills/<name>/SKILL.md`
 2. Add the symlink: `ln -s ~/.claude/custom-skills/.claude/skills/<name> ~/.claude/skills/<name>`

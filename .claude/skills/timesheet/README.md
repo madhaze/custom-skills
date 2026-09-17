@@ -63,8 +63,8 @@ python3 ~/.claude/skills/timesheet/session-time.py --no-blocks
 4. Buckets blocks into working days that begin at 2am, not midnight, so a session running
    through midnight stays whole and late-night work lands on the evening that produced it
 5. Sums block durations per day as **engaged time**
-6. Reports worker (worktree) sessions separately as machine time — never folded in, including
-   under `--all-projects`
+6. Reports worker (worktree) sessions separately as machine time — never folded into your
+   hours, even when every project is being reported at once
 7. Splits each day by repo first, then by ticket within each repo, sharing a block's seconds
    proportionally
 8. Optionally appends day totals and a per-day `project,ticket,hours` detail CSV
@@ -81,8 +81,8 @@ person's hours.
 
 **Per-ticket is an estimate.** A block's seconds are shared across the tickets mentioned in
 it, weighted by how many messages mention each. Fine for a daily split; not for billing to the
-minute. `--dominant` restores the old winner-take-all rule, which under `--all-projects`
-silently erases a minority repo whose blocks interleave with a busier one.
+minute. `--dominant` restores the old winner-take-all rule, which across several repos
+silently erases a minority one whose blocks interleave with a busier one.
 
 **Repo attribution is structural; ticket attribution is textual.** A ticket appears only if its
 key was typed in chat or in a commit subject, so untagged work shows as `(untagged)`. To answer
@@ -91,7 +91,7 @@ directory and cannot be voted away.
 
 **A working day starts at 2am.** Work at 00:30 is credited to the previous date. Besides
 matching how a day is remembered, this stops a 15-minute-gap rule from being overridden by the
-calendar. Spans marked `+1d` in `--blocks` output fell on the following calendar date.
+calendar. A span marked `+1d` in the block listing fell on the following calendar date.
 
 **Still invisible:** IDE-only work, terminal work, PR review, meetings. Those remain a manual
 add.
