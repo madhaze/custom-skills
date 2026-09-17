@@ -19,6 +19,7 @@ The symlink approach for local use lets you edit skills in one place (`~/.claude
 | [`component-visual-review`](.claude/skills/component-visual-review/README.md) | Pixel-perfect visual review of a component against a design reference |
 | [`find-blocked-mcp`](.claude/skills/find-blocked-mcp/README.md) | Identify MCP tools blocked by approval errors in a routine log |
 | [`work-briefing`](.claude/skills/work-briefing/README.md) | Daily work briefing from Jira and Gmail, delivered in chat or Slack |
+| [`time-tracking`](.claude/skills/time-tracking/README.md) | Reconstruct time worked per day, project and ticket from session transcripts |
 
 ## Installation (local)
 
