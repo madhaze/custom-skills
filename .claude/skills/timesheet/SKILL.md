@@ -71,9 +71,10 @@ midnight from being split into two artificial blocks. In `--blocks` output a spa
 `+1d` fell on the following calendar date.
 
 **The default output has three parts**, in order: each day's working blocks with clock
-times, then that day's project→ticket split, and finally a SUMMARY footer — one row per day
-with its hours, the 0.25h-rounded figure to type into a timesheet, and the project split,
-followed by week totals by project and by ticket. `--no-blocks` drops the first part;
+times, then that day's project→ticket split, and finally a SUMMARY footer — per day: its hours,
+the 0.25h-rounded figure to type into a timesheet, the project split, and beneath it that
+day's tickets (top 6 over `--min`, the rest as `(other)`); then week totals by project and
+by ticket. `--no-blocks` drops the first part;
 `--totals` drops the first two.
 
 **Block times show the gaps too.** A break of 30 minutes or more between two blocks prints as

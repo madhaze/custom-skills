@@ -578,8 +578,13 @@ def main():
         if a.by_project and a.by_ticket:
             nested = by_project_ticket(bl, mo_text.get(day, []),
                                        mo_proj.get(day, []), a.dominant)
+            day_tk = defaultdict(float)
+            for _p, _t in nested.items():
+                for _k, _sec in _t.items():
+                    day_tk[_k] += _sec / 3600
             week.append((day, secs / 3600, so_secs / 3600,
-                         {p: sum(t.values()) / 3600 for p, t in nested.items()}))
+                         {p: sum(t.values()) / 3600 for p, t in nested.items()},
+                         dict(day_tk)))
             for p, t in nested.items():
                 for tk, sec in t.items():
                     week_tickets[tk] += sec / 3600
@@ -615,18 +620,27 @@ def main():
         print("\n" + "=" * 78)
         print(f"SUMMARY  {start} to {end}   "
               f"(gap {a.gap}m, day starts {a.day_start}:00, {sources})")
-        print(f"\n{'date':<12} {'day':<4} {'engaged':>8} {'sheet':>7}  projects")
+        print(f"\n{'date':<12} {'day':<4} {'engaged':>8} {'sheet':>7}  "
+              f"projects / tickets")
         print("-" * 78)
         proj_tot, worker_tot = defaultdict(float), 0.0
-        for day, eng, wk, projs in week:
+        for day, eng, wk, projs, tks in week:
             worker_tot += wk
             for p, h in projs.items():
                 proj_tot[p] += h
             split = " | ".join(f"{p} {h:.2f}" for p, h in
                                sorted(projs.items(), key=lambda kv: -kv[1]))
             print(f"{day}  {day:%a}  {eng:>7.2f}h {q(eng):>6.2f}  {split}")
+            ranked = sorted(tks.items(), key=lambda kv: -kv[1])
+            shown = [(k, h) for k, h in ranked if h >= a.min][:6]
+            line = " | ".join(f"{k} {h:.2f}" for k, h in shown)
+            rest = sum(h for k, h in ranked if (k, h) not in shown)
+            if rest >= 0.01:
+                line += f" | (other) {rest:.2f}"
+            if line:
+                print(f"{'':<34}{line}")
         print("-" * 78)
-        tot_h = sum(e for _, e, _, _ in week)
+        tot_h = sum(e for _, e, _, _, _ in week)
         print(f"{'TOTAL':<18} {tot_h:>7.2f}h {q(tot_h):>6.2f}   "
               f"worker {worker_tot:.2f}h (separate -- machine time, never added)")
         print(f"\n{'by project':<12} " + " | ".join(
