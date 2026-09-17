@@ -31,6 +31,7 @@ split by project and then by ticket. Nothing is written unless you pass `--appen
 | `--project PATH` | only this repo |
 | `--day-start H` | hour a working day begins (default 2 = 2am); `0` for calendar days |
 | `--gap N` | idle minutes that end a working block (default 15) |
+| `--min-block M` | blocks under M minutes are pings, not sittings (default 1; `0` disables) |
 | `--min H` | roll rows under H hours into `(other)` (default 0.1) |
 | `--no-commits` | transcripts only (git commits are included by default) |
 | `--commit-minutes M` | credit M min of lead-up before each commit (default 0) |
@@ -68,6 +69,15 @@ produced it, so it is credited to the previous date; `--day-start 0` restores ca
 Besides matching how a person remembers their day, this stops a session that runs through
 midnight from being split into two artificial blocks. In `--blocks` output a span marked
 `+1d` fell on the following calendar date.
+
+**`--blocks` also shows the gaps.** A break of 30 minutes or more between two blocks prints as
+`-- 2h 28m away --`, so a day's missing hours are visible rather than inferred.
+
+**Sub-minute blocks are pings, not sittings.** Scheduled tasks and `/loop` runs leave
+one-minute entries at mechanical intervals — sixteen at 30-minute spacing overnight, in one
+observed case. They keep their seconds (a negligible 0.04h) but are collapsed into a single
+row and excluded from the block count, so the fragmentation figure stays meaningful.
+`--min-block 0` disables this.
 
 **`--gap` is a judgement, not a fact.** 15 minutes is the default; 30 merges short breaks and
 raises every total. If a number is going somewhere that matters, say which gap produced it.

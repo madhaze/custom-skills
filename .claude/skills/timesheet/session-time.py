@@ -349,6 +349,13 @@ def by_project(day_blocks, projmsgs, dominant=False):
     return _split(day_blocks, projmsgs, lambda p: (p,), "(unknown)", dominant)
 
 
+def human_gap(secs):
+    """'2h 28m' / '47m' -- how long you were away between blocks."""
+    m = int(round(secs / 60))
+    h, m = divmod(m, 60)
+    return f"{h}h {m:02d}m" if h else f"{m}m"
+
+
 def clock(ts):
     """12-hour wall clock -- what a person remembers their day as."""
     return ts.strftime("%I:%M%p").lstrip("0").replace("AM", "am").replace("PM", "pm")
@@ -397,6 +404,11 @@ def main():
                     help="only the current git repo (default: every project)")
     ap.add_argument("--totals", action="store_true",
                     help="day totals only, without the project/ticket breakdown")
+    ap.add_argument("--min-block", type=float, default=1.0, metavar="M",
+                    help="blocks under M minutes are pings, not sittings: they "
+                         "keep their seconds but are collapsed in --blocks and "
+                         "excluded from the block count (default 1; 0 disables). "
+                         "Scheduled tasks and /loop runs produce these.")
     ap.add_argument("--from", dest="frm")
     ap.add_argument("--to", dest="to")
     ap.add_argument("--gap", type=int, default=15, help="idle minutes ending a block")
@@ -503,28 +515,56 @@ def main():
             continue
         bl = blocks(mo_ev[day], gap)
         secs = sum((b - x).total_seconds() for x, b in bl)
+        floor = a.min_block * 60
+        real = [(x, b) for x, b in bl if (b - x).total_seconds() >= floor]
+        n_real = len(real) if a.min_block else len(bl)
         so_secs = sum((b - x).total_seconds()
                       for x, b in blocks(so_ev.get(day, []), gap))
         n = sum(git_counts.get(day, {}).values())
         total += secs
-        print(f"{day}  {day:%a}  {secs/3600:>7.2f}h {len(bl):>7} {mo_user[day]:>6} "
+        print(f"{day}  {day:%a}  {secs/3600:>7.2f}h {n_real:>7} {mo_user[day]:>6} "
               f"{so_secs/3600:>6.2f}h {n:>8}")
         rows.append({
             "date": day.isoformat(), "weekday": f"{day:%a}",
             "engaged_hours": round(secs / 3600, 2),
-            "blocks": len(bl), "your_messages": mo_user[day],
+            "blocks": n_real, "your_messages": mo_user[day],
             "worker_hours": round(so_secs / 3600, 2), "commits": n,
             "gap_minutes": a.gap, "day_start_hour": a.day_start,
             "attribution": mode, "sources": sources,
         })
         if a.blocks:
+            prev_end = None
+            run = []                       # consecutive sub-threshold pings
+            def flush():
+                if not run:
+                    return
+                rs, re_ = run[0][0], run[-1][1]
+                secs_ = sum((b - x).total_seconds() for x, b in run)
+                span_ = f"{clock(rs)}-{clock(re_)}"
+                if rs.date() != day:
+                    span_ += " +1d"
+                n = len(run)
+                print(f"{'':<12} {span_:<18} {secs_/3600:>6.2f}h  "
+                      f"({n} short {'entry' if n == 1 else 'entries'} "
+                      f"-- scheduled or automated)")
+                run.clear()
             for bs, be in bl:
-                dur = (be - bs).total_seconds() / 3600
+                dur = (be - bs).total_seconds()
+                if a.min_block and dur < a.min_block * 60:
+                    run.append((bs, be))
+                    continue
+                flush()
+                if prev_end is not None:
+                    away = (bs - prev_end).total_seconds()
+                    if away >= 1800:       # only breaks worth noticing
+                        print(f"{'':<12} {'':<18} {'':>6}   -- {human_gap(away)} away --")
                 tag = block_label(bs, be, mo_text.get(day, []), mo_proj.get(day, []))
                 span = f"{clock(bs)}-{clock(be)}"
                 if bs.date() != day:
                     span += " +1d"
-                print(f"{'':<12} {span:<18} {dur:>6.2f}h  {tag}")
+                print(f"{'':<12} {span:<18} {dur/3600:>6.2f}h  {tag}")
+                prev_end = be
+            flush()
         if a.by_project and a.by_ticket:
             nested = by_project_ticket(bl, mo_text.get(day, []),
                                        mo_proj.get(day, []), a.dominant)

@@ -40,6 +40,7 @@ python3 ~/.claude/skills/timesheet/session-time.py [options]
 | `--project PATH` | only this repo |
 | `--day-start H` | hour a working day begins (default 2 = 2am); `0` for calendar days |
 | `--gap N` | idle minutes that end a working block (default 15) |
+| `--min-block M` | blocks under M minutes are pings, not sittings (default 1; `0` disables) |
 | `--min H` | roll rows under H hours into `(other)` (default 0.1) |
 | `--no-commits` | transcripts only (git commits are included by default) |
 | `--commit-minutes M` | credit M min of lead-up before each commit (default 0) |
