@@ -356,6 +356,13 @@ def by_project(day_blocks, projmsgs, dominant=False):
     return _split(day_blocks, projmsgs, lambda p: (p,), "(unknown)", dominant)
 
 
+# ANSI only when a human is looking: a pipe or a file gets clean text.
+TTY = sys.stdout.isatty()
+def _c(code):
+    return (lambda t: f"\033[{code}m{t}\033[0m") if TTY else (lambda t: t)
+BOLD, DIM, CYAN, YEL = _c("1"), _c("2"), _c("36"), _c("33")
+
+
 def human_gap(secs):
     """'2h 28m' / '47m' -- how long you were away between blocks."""
     m = int(round(secs / 60))
@@ -472,8 +479,8 @@ def main():
                                      else f"{os.path.basename(REPO) or 'daily'}.csv"))
     mode = "dominant" if a.dominant else "proportional"
     src = "claude+git" if a.with_commits else "claude sessions only"
-    print(f"project: {label}   (gap {a.gap}m, day starts {a.day_start}:00, "
-          f"{mode} attribution, {src})\n")
+    header_note = (f"gap {a.gap}m · day starts {a.day_start}:00 · "
+                   f"{mode} attribution · {src}")
 
     global TICKET
     if a.ticket_prefix:
@@ -505,23 +512,22 @@ def main():
     if a.with_commits:
         sources = "claude+git"
         pad = dt.timedelta(minutes=a.commit_minutes)
-        for label, items in git_ev.items():
+        for glabel, items in git_ev.items():
             for ts, subj in items:
                 for point in ((ts - pad, ts) if pad else (ts,)):
                     mo_ev[_day(point)].append(point)
-                    mo_proj[_day(point)].append((point, label))
+                    mo_proj[_day(point)].append((point, glabel))
                 if (a.by_ticket or a.blocks) and subj:
-                    mo_text[_day(ts)].append((ts, subj, label))
+                    mo_text[_day(ts)].append((ts, subj, glabel))
 
     rows = []
-    print(f"{'date':<12} {'day':<4} {'engaged':>8} {'blocks':>7} {'msgs':>6} "
-          f"{'worker':>7} {'commits':>8}")
-    print("-" * 60)
+    print(BOLD(f"{label}") + DIM(f"   {start} to {end}"))
+    print(DIM(header_note))
     total = 0.0
     for i in range((end - start).days + 1):
         day = start + dt.timedelta(days=i)
         if day not in mo_ev:
-            print(f"{day}  {day:%a}  {'—':>8}")
+            print(DIM(f"\n{day:%a %d %b}  ·  no session"))
             continue
         bl = blocks(mo_ev[day], gap)
         secs = sum((b - x).total_seconds() for x, b in bl)
@@ -532,8 +538,12 @@ def main():
                       for x, b in blocks(so_ev.get(day, []), gap))
         n = sum(git_counts.get(day, {}).values())
         total += secs
-        print(f"{day}  {day:%a}  {secs/3600:>7.2f}h {n_real:>7} {mo_user[day]:>6} "
-              f"{so_secs/3600:>6.2f}h {n:>8}")
+        print()
+        print(BOLD(f"{day:%a %d %b}") + DIM("  ·  ") +
+              BOLD(f"{secs/3600:.2f}h") + DIM(" engaged  ·  ") +
+              f"{n_real} blocks" + DIM("  ·  ") +
+              f"{n} commits" + DIM("  ·  ") +
+              DIM(f"{so_secs/3600:.2f}h machine (separate)"))
         rows.append({
             "date": day.isoformat(), "weekday": f"{day:%a}",
             "engaged_hours": round(secs / 3600, 2),
@@ -554,9 +564,9 @@ def main():
                 if rs.date() != day:
                     span_ += " +1d"
                 n = len(run)
-                print(f"{'':<12} {span_:<18} {secs_/3600:>6.2f}h  "
-                      f"({n} short {'entry' if n == 1 else 'entries'} "
-                      f"-- scheduled or automated)")
+                print(DIM(f"{'':<4}{span_:>22}  {secs_/3600:5.2f}h   "
+                          f"({n} short {'entry' if n == 1 else 'entries'} "
+                          f"- scheduled or automated)"))
                 run.clear()
             for bs, be in bl:
                 dur = (be - bs).total_seconds()
@@ -567,12 +577,12 @@ def main():
                 if prev_end is not None:
                     away = (bs - prev_end).total_seconds()
                     if away >= 1800:       # only breaks worth noticing
-                        print(f"{'':<12} {'':<18} {'':>6}   -- {human_gap(away)} away --")
+                        print(DIM(f"{'':<12}{human_gap(away)} away").rstrip())
                 tag = block_label(bs, be, mo_text.get(day, []), mo_proj.get(day, []))
                 span = f"{clock(bs)}-{clock(be)}"
                 if bs.date() != day:
                     span += " +1d"
-                print(f"{'':<12} {span:<18} {dur/3600:>6.2f}h  {tag}")
+                print(f"{'':<4}{span:>22}  {CYAN(f'{dur/3600:5.2f}h')}   {tag}")
                 prev_end = be
             flush()
         if a.by_project and a.by_ticket:
@@ -593,9 +603,9 @@ def main():
                 ph = sum(tks.values()) / 3600
                 if ph < a.min:
                     continue
-                print(f"{'':<14} {pj:<34} {ph:>6.2f}h")
+                print(f"{'':<4}{YEL(f'{pj:<24}')} {ph:>6.2f}h")
                 for tk, s in sorted(rollup(tks, a.min).items(), key=lambda kv: -kv[1]):
-                    print(f"{'':<18} {tk:<30} {s/3600:>6.2f}h")
+                    print(f"{'':<8}{tk:<20} {s/3600:>6.2f}h")
                     detail.append({"date": day.isoformat(), "weekday": f"{day:%a}",
                                    "project": pj, "ticket": tk,
                                    "hours": round(s / 3600, 2)})
@@ -611,8 +621,9 @@ def main():
                 print(f"{'':<18} {tk:<16} {s/3600:>6.2f}h")
                 detail.append({"date": day.isoformat(), "weekday": f"{day:%a}",
                                "project": "", "ticket": tk, "hours": round(s / 3600, 2)})
-    print("-" * 60)
-    print(f"{'TOTAL':<18} {total/3600:>7.2f}h over {len(rows)} active days")
+    print()
+    print(DIM("-" * 78))
+    print(BOLD(f"{total/3600:.2f}h") + f" over {len(rows)} active days")
 
     if week:
         def q(h):                          # what you actually type in
